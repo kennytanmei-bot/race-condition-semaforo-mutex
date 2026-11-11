@@ -6,7 +6,7 @@
 
 
 #define USE_MUTEX   0     /* 0 = com race condition | 1 = corrigido com mutex */
-#define ITERACOES   5
+#define ITERACOES   20
 #define STACK_SIZE  1024
 
 
