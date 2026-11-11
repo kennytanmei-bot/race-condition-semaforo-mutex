@@ -115,7 +115,7 @@ int main(void)
 
 	printk("Incrementos sobrescritos (soma das ocorrencias): A=%u | B=%u\n",
 	       perdidos[0], perdidos[1]);
-	printk("Resultado: %s\n", (obtido == esperado) ? "OK" : "RACE CONDITION DETECTADA");
+	printk("Resultado: %s\n", (obtido == esperado) ? "OK, SEM RACE CONDITION DETECTADA" : "RACE CONDITION DETECTADA");
 
 	return 0;
 }
