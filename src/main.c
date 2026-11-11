@@ -1,22 +1,16 @@
 /*
- * CENARIO 3 (ORIGINAL) - Contador compartilhado com "lost update"
+ * CENARIO 1 (CORRIGIDO) - Contador compartilhado protegido por MUTEX
  *
- * Duas threads incrementam a mesma variavel global N_ITER vezes cada.
- * Valor esperado ao final: 2 * N_ITER.
+ * Mesmo programa do codigo original, mas a secao critica (LOAD/ADD/STORE)
+ * agora e protegida por um k_mutex. Somente uma thread por vez executa o
+ * trecho; a outra bloqueia em k_mutex_lock() ate o mutex ser liberado.
  *
- * O incremento "contador++" NAO e atomico: ele e feito em 3 passos
- * (LOAD -> ADD -> STORE). Se o time slicing trocar de thread entre o LOAD e o
- * STORE, a outra thread escreve um valor que depois e sobrescrito com um valor
- * antigo -> incrementos sao perdidos (race condition).
+ * Por que MUTEX aqui: o recurso (variavel) tem "dono" durante o acesso -
+ * a mesma thread que trava e quem destrava, e o mutex do Zephyr ainda tem
+ * heranca de prioridade, evitando inversao de prioridade.
  *
- * A pequena espera entre o LOAD e o STORE apenas AUMENTA a janela de tempo
- * em que a troca de contexto pode acontecer, tornando o erro reproduzivel.
- *
- * DETECCAO DO ERRO: logo antes do STORE, a thread le o contador de novo.
- * Se o valor mudou desde o LOAD, outra thread incrementou durante a janela e
- * este STORE vai sobrescrever o trabalho dela (lost update). A ocorrencia e
- * guardada em um log por thread (sem printk dentro do loop, para nao alterar
- * o timing) e impressa no final.
+ * A mesma deteccao do codigo original foi mantida (agora DENTRO do mutex):
+ * se a correcao funciona, nenhuma ocorrencia deve ser detectada.
  */
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
@@ -24,19 +18,21 @@
 #define N_ITER      20000U
 #define STACK_SIZE  1024
 #define PRIORIDADE  5
-#define MAX_LOG     5U      /* quantas ocorrencias guardar por thread */
+#define MAX_LOG     5U
 
 struct evento {
-	uint32_t iter;      /* iteracao da thread em que ocorreu */
-	uint32_t lido;      /* valor lido no LOAD */
-	uint32_t atual;     /* valor do contador logo antes do STORE */
+	uint32_t iter;
+	uint32_t lido;
+	uint32_t atual;
 };
 
 static volatile uint32_t contador;
 
 static struct evento log_ev[2][MAX_LOG];
-static uint32_t n_ev[2];        /* total de ocorrencias detectadas */
-static uint32_t perdidos[2];    /* incrementos perdidos detectados */
+static uint32_t n_ev[2];
+static uint32_t perdidos[2];
+
+static K_MUTEX_DEFINE(mtx_contador);
 
 static K_THREAD_STACK_DEFINE(stack_a, STACK_SIZE);
 static K_THREAD_STACK_DEFINE(stack_b, STACK_SIZE);
@@ -52,15 +48,15 @@ static void incrementa(void *id_ptr, void *p2, void *p3)
 	const int id = (int)(intptr_t)id_ptr;      /* 0 = A, 1 = B */
 
 	for (uint32_t i = 0; i < N_ITER; i++) {
-		/* ---- inicio da secao critica (SEM protecao) ---- */
-		uint32_t lido = contador;           /* LOAD  */
+		k_mutex_lock(&mtx_contador, K_FOREVER);   /* entra na secao critica */
+
+		uint32_t lido = contador;                 /* LOAD  */
 		uint32_t tmp = lido;
 
-		for (volatile int d = 0; d < 0; d++) {
-			/* alarga a janela da race condition */
+		for (volatile int d = 0; d < 5; d++) {
+			/* mesma espera do original: agora e inofensiva */
 		}
 
-		/* deteccao: o contador mudou entre o LOAD e o STORE? */
 		uint32_t atual = contador;
 
 		if (atual != lido) {
@@ -73,9 +69,10 @@ static void incrementa(void *id_ptr, void *p2, void *p3)
 			perdidos[id] += atual - lido;
 		}
 
-		tmp = tmp + 1U;                     /* ADD   */
-		contador = tmp;                     /* STORE */
-		/* ---- fim da secao critica ---- */
+		tmp = tmp + 1U;                           /* ADD   */
+		contador = tmp;                           /* STORE */
+
+		k_mutex_unlock(&mtx_contador);            /* sai da secao critica */
 	}
 
 	/* sem printk aqui: duas threads imprimindo juntas misturam a saida serial */
@@ -84,7 +81,7 @@ static void incrementa(void *id_ptr, void *p2, void *p3)
 
 int main(void)
 {
-	printk("\n=== Cenario 3 ORIGINAL: contador compartilhado (sem protecao) ===\n");
+	printk("\n=== Cenario 1 CORRIGIDO: contador protegido por MUTEX ===\n");
 
 	k_thread_create(&thread_a, stack_a, K_THREAD_STACK_SIZEOF(stack_a),
 			incrementa, (void *)(intptr_t)0, NULL, NULL, PRIORIDADE, 0, K_NO_WAIT);
@@ -118,7 +115,7 @@ int main(void)
 
 	printk("Incrementos sobrescritos (soma das ocorrencias): A=%u | B=%u\n",
 	       perdidos[0], perdidos[1]);
-	printk("Resultado: %s\n", (obtido == esperado) ? "OK" : "RACE CONDITION DETECTADA");
+	printk("Resultado: %s\n", (obtido == esperado) ? "OK, SEM RACE CONDITION DETECTADA" : "RACE CONDITION DETECTADA");
 
 	return 0;
 }
