@@ -1,5 +1,5 @@
 /*
- * CENARIO 1 (CORRIGIDO) - Contador compartilhado protegido por MUTEX
+ * CENARIO 2 (CORRIGIDO) - Contador compartilhado protegido por MUTEX
  *
  * Mesmo programa do codigo original, mas a secao critica (LOAD/ADD/STORE)
  * agora e protegida por um k_mutex. Somente uma thread por vez executa o
@@ -15,7 +15,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 
-#define N_ITER      20000U
+#define N_ITER      1000U
 #define STACK_SIZE  1024
 #define PRIORIDADE  5
 #define MAX_LOG     5U
@@ -81,7 +81,7 @@ static void incrementa(void *id_ptr, void *p2, void *p3)
 
 int main(void)
 {
-	printk("\n=== Cenario 1 CORRIGIDO: contador protegido por MUTEX ===\n");
+	printk("\n=== Cenario 2 CORRIGIDO: contador protegido por MUTEX ===\n");
 
 	k_thread_create(&thread_a, stack_a, K_THREAD_STACK_SIZEOF(stack_a),
 			incrementa, (void *)(intptr_t)0, NULL, NULL, PRIORIDADE, 0, K_NO_WAIT);
