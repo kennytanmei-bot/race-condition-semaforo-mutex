@@ -1,5 +1,5 @@
 /*
- * CENARIO 1 (ORIGINAL) - Contador compartilhado com "lost update"
+ * CENARIO 2 (ORIGINAL) - Contador compartilhado com "lost update"
  *
  * Duas threads incrementam a mesma variavel global N_ITER vezes cada.
  * Valor esperado ao final: 2 * N_ITER.
@@ -21,7 +21,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 
-#define N_ITER      20000U
+#define N_ITER      1000U
 #define STACK_SIZE  1024
 #define PRIORIDADE  5
 #define MAX_LOG     5U      /* quantas ocorrencias guardar por thread */
@@ -84,7 +84,7 @@ static void incrementa(void *id_ptr, void *p2, void *p3)
 
 int main(void)
 {
-	printk("\n=== Cenario 1 ORIGINAL: contador compartilhado (sem protecao) ===\n");
+	printk("\n=== Cenario 2 ORIGINAL: contador compartilhado (sem protecao) ===\n");
 
 	k_thread_create(&thread_a, stack_a, K_THREAD_STACK_SIZEOF(stack_a),
 			incrementa, (void *)(intptr_t)0, NULL, NULL, PRIORIDADE, 0, K_NO_WAIT);
