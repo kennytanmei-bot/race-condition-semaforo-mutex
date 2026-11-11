@@ -6,7 +6,7 @@
 
 
 #define USE_MUTEX   0     /* 0 = com race condition | 1 = corrigido com mutex */
-#define ITERACOES   20
+#define ITERACOES   10
 #define STACK_SIZE  1024
 
 
@@ -34,7 +34,7 @@ K_SEM_DEFINE(fim_sem, 0, 2);
 
 void tarefa(void *p1, void *p2, void *p3)
 {
-    const char nome = (const char *)p1;   / "A" ou "B" */
+    const char *nome = (const char *)p1;   /* "A" ou "B" */
 
 
 
