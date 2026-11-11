@@ -15,7 +15,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 
-#define N_ITER      2000U
+#define N_ITER      20000U
 #define STACK_SIZE  1024
 #define PRIORIDADE  5
 #define MAX_LOG     5U
@@ -115,7 +115,7 @@ int main(void)
 
 	printk("Incrementos sobrescritos (soma das ocorrencias): A=%u | B=%u\n",
 	       perdidos[0], perdidos[1]);
-	printk("Resultado: %s\n", (obtido == esperado) ? "OK, SEM RACE CONDITION DETECTADA" : "RACE CONDITION DETECTADA");
+	printk("Resultado: %s\n", (obtido == esperado) ? "OK" : "RACE CONDITION DETECTADA");
 
 	return 0;
 }
